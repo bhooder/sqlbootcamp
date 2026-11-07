@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL Claims Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a query-tool workspace. Explorer (left) | editor over results grid (center) | lesson guide (right). Stacks on narrow screens. */
+:root{
+  --bg:#e9eef1; --surface:#ffffff; --sunk:#f6f8f9; --chrome:#dfe6ea; --ink:#15212a; --muted:#5a6873; --line:#d5dde2;
+  --accent:#0d6b58; --accent-ink:#ffffff; --accent-soft:#dff0ea;
+  --amber:#a86300; --amber-soft:#fbefd9; --bad:#b0281f; --bad-soft:#fbe5e2;
+  --kw:#1a5ca6; --str:#9a4700; --num:#7b3b9e; --cmt:#83909a; --gutter:#9aa6ae;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0b1013; --surface:#141b20; --sunk:#10161a; --chrome:#1a2329; --ink:#e3e9ed; --muted:#93a1ab; --line:#25313a;
+  --accent:#44c4a0; --accent-ink:#06231b; --accent-soft:#12302a;
+  --amber:#e9a640; --amber-soft:#2d2312; --bad:#ff8d82; --bad-soft:#3a1a17;
+  --kw:#82b5ff; --str:#f0b36c; --num:#d4a6f5; --cmt:#6b7a85; --gutter:#4f5d67; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0b1013; --surface:#141b20; --sunk:#10161a; --chrome:#1a2329; --ink:#e3e9ed; --muted:#93a1ab; --line:#25313a;
+  --accent:#44c4a0; --accent-ink:#06231b; --accent-soft:#12302a;
+  --amber:#e9a640; --amber-soft:#2d2312; --bad:#ff8d82; --bad-soft:#3a1a17;
+  --kw:#82b5ff; --str:#f0b36c; --num:#d4a6f5; --cmt:#6b7a85; --gutter:#4f5d67; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 16px}
+button{font:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:0 .3em}
+
+/* toolbar */
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding-block:12px 10px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--accent);display:grid;place-items:center;flex:none}
+.logo svg{display:block}
+.brand h1{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:-.01em;margin:0;white-space:nowrap}
+.brand span{color:var(--muted);font-size:.85rem}
+@media (max-width:640px){.brand span{display:none}}
+.meter{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.meter .bar{width:90px;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.meter .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--muted);padding:5px 12px;font-weight:600;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tools{display:flex;gap:6px}
+.tools button{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:4px 10px;font-size:.84rem;font-weight:600;min-width:32px}
+.tools button:hover{border-color:var(--muted)}
+
+/* workspace */
+.ide{display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:9px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.ptabs{display:flex;align-items:stretch;background:var(--chrome);border-bottom:1px solid var(--line);min-height:36px;flex:none}
+.ptabs button,.ptabs .label{border:0;background:transparent;padding:0 14px;font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.ptabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:inset 0 2px 0 var(--accent)}
+.ptabs .right{margin-left:auto;padding:0 12px;font-size:.78rem;color:var(--muted);display:flex;align-items:center;font-variant-numeric:tabular-nums}
+.pscroll{overflow:auto;min-height:0;flex:1}
+.center{display:flex;flex-direction:column;gap:10px;min-width:0;min-height:0}
+.guide{order:-1}
+.leftcol{display:flex;flex-direction:column;gap:10px;min-width:0;order:1}
+@media (min-width:1100px){.leftcol{order:0}}
+@media (min-width:1100px){
+  html,body{height:100%}
+  body{display:flex;flex-direction:column}
+  .ide{flex:1;min-height:0;display:grid;grid-template-columns:minmax(270px,300px) minmax(0,1fr) minmax(300px,28%)}
+  .leftcol{min-height:0}
+  .explorer{flex:0 1 auto}
+  .explorer .pscroll{flex:0 1 auto}
+  .ref{flex:1 1 140px}
+  .guide{order:0}
+  .center{display:grid;grid-template-rows:minmax(170px,42%) minmax(0,1fr)}
+}
+@media (max-width:1099px){
+  .explorer .pscroll{max-height:340px}
+  .guide .pscroll{max-height:none}
+}
+
+/* explorer: lessons */
+.lessons{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:1px}
+.lessons .unit{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 8px 3px;font-weight:700}
+.lessons .unit:first-child{padding-top:4px}
+.lessons button{width:100%;display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;text-align:left;border:0;background:transparent;padding:5px 8px;border-radius:6px;font-size:.9rem;line-height:1.25}
+.lessons button:hover{background:var(--sunk)}
+.lessons button[aria-current="true"]{background:var(--accent-soft);font-weight:600}
+.lessons .num{font-family:var(--mono);font-size:.68rem;color:var(--muted);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface)}
+.lessons .done .num{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+/* explorer: database tree */
+.tree{padding:8px 6px;font-size:.88rem}
+.node{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;min-width:0}
+.node .ic{flex:none;color:var(--muted);display:flex}
+.node.db{font-weight:700}
+.tree details{margin-left:8px}
+.tree summary{white-space:nowrap;list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px}
+.tree summary::-webkit-details-marker{display:none}
+.tree summary:hover{background:var(--sunk)}
+.caret{flex:none;width:10px;color:var(--muted);transition:transform .15s;font-size:.7rem}
+.tree details[open]>summary .caret{transform:rotate(90deg)}
+.tname{font-family:var(--mono);font-size:.84rem;font-weight:600}
+.tcount{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tact{margin-left:auto;display:flex;gap:4px}
+.tact button{border:1px solid var(--line);background:var(--surface);border-radius:4px;font-size:.7rem;padding:0 6px;color:var(--muted)}
+.tact button:hover{color:var(--accent);border-color:var(--accent)}
+.cols{list-style:none;margin:2px 0 6px 22px;padding:0 0 0 8px;border-left:1px solid var(--line)}
+.cols li button{width:100%;border:0;background:transparent;text-align:left;display:flex;justify-content:space-between;gap:10px;padding:2px 6px;border-radius:4px;align-items:baseline}
+.cols li button:hover{background:var(--accent-soft)}
+.cname{font-family:var(--mono);font-size:.8rem}
+.cname{white-space:nowrap}
+.cmeta{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.3;min-width:0}
+.ctype{font-family:var(--mono);font-size:.64rem}
+.ref .refbody{padding:10px 14px 14px;font-size:.84rem}
+.ref dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline}
+.ref dt{font-family:var(--mono);font-size:.74rem;font-weight:600;color:var(--kw);white-space:nowrap}
+.ref dd{margin:0;color:var(--muted)}
+.ref h5{margin:12px 0 5px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ref h5:first-child{margin-top:0}
+.ref .line{font-family:var(--mono);font-size:.74rem;background:var(--sunk);border:1px solid var(--line);border-radius:5px;padding:5px 8px;overflow-x:auto;white-space:nowrap}
+.badge{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:0 4px;border-radius:3px;margin-left:4px;vertical-align:1px}
+.badge.pk{background:var(--amber-soft);color:var(--amber)}
+.badge.fk{background:var(--accent-soft);color:var(--accent)}
+.tree .tip{font-size:.75rem;color:var(--muted);padding:10px 8px 2px;line-height:1.4}
+
+/* editor */
+.edtools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid var(--line);flex:none}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:4px 11px;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.run{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.run:hover{filter:brightness(1.07)}
+.btn.check{color:var(--accent);border-color:var(--accent)}
+.keys{margin-left:auto;font-size:.75rem;color:var(--muted)}
+.clauses{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--line);align-items:center;flex:none;background:var(--sunk)}
+.clauses .lab{font-size:.7rem;color:var(--muted);margin-right:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.clause{font-family:var(--mono);font-size:.68rem;padding:1px 6px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.clause.on{background:var(--accent-soft);color:var(--accent);border-color:transparent;font-weight:600}
+.clause.wrong{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.arrow{color:var(--gutter);font-size:.7rem}
+.clause-msg{font-size:.78rem;color:var(--bad);width:100%}
+.editor-wrap{position:relative;flex:1;min-height:220px;background:var(--surface)}
+@media (min-width:1100px){.editor-wrap{min-height:0}}
+.gutter{position:absolute;left:0;top:0;bottom:0;width:46px;overflow:hidden;background:var(--sunk);border-right:1px solid var(--line);pointer-events:none}
+.gutter pre{margin:0;padding:12px 8px 12px 0;text-align:right;color:var(--gutter);will-change:transform}
+.editor-wrap pre.hl,.editor-wrap textarea,.gutter pre{font-family:var(--mono);font-size:.9rem;line-height:1.6;tab-size:2;letter-spacing:0}
+.editor-wrap pre.hl,.editor-wrap textarea{position:absolute;inset:0;margin:0;border:0;padding:12px 14px 12px 58px;white-space:pre;overflow-wrap:normal}
+.editor-wrap pre.hl{overflow:hidden;pointer-events:none;color:var(--ink)}
+.editor-wrap textarea{width:100%;height:100%;resize:none;overflow:auto;background:transparent;color:transparent;caret-color:var(--ink);outline:none}
+.editor-wrap textarea::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+.editor-wrap textarea:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.t-kw{color:var(--kw);font-weight:600}.t-str{color:var(--str)}.t-num{color:var(--num)}.t-cmt{color:var(--cmt);font-style:italic}.t-fn{color:var(--kw)}
+
+/* results */
+.rbody{overflow:auto;min-height:0;flex:1}
+@media (max-width:1099px){.rbody{max-height:420px;min-height:120px}}
+table.grid{border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabular-nums;min-width:100%}
+.grid th{position:sticky;top:0;background:var(--sunk);text-align:left;font-family:var(--mono);font-size:.76rem;font-weight:600;padding:6px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap;z-index:1}
+.grid td{padding:4px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);white-space:nowrap}
+.grid td.n{text-align:right;font-family:var(--mono);font-size:.82rem}
+.grid td.null{color:var(--muted);font-style:italic}
+.grid .rn{color:var(--gutter);font-family:var(--mono);font-size:.74rem;text-align:right;background:var(--sunk);width:1%}
+.grid th.rn{z-index:2}
+.grid tbody tr:hover td{background:var(--accent-soft)}
+.grid tbody tr:hover td.rn{background:var(--sunk)}
+.empty{padding:20px 16px;color:var(--muted);font-size:.92rem;max-width:60ch}
+.msgs{padding:6px 0;font-size:.86rem}
+.msg{padding:8px 14px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr;gap:2px 12px}
+.msg .ts{font-family:var(--mono);font-size:.72rem;color:var(--muted);padding-top:2px}
+.msg .q{font-family:var(--mono);font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg .t{grid-column:2}
+.msg.err .t b{color:var(--bad)}
+.msg.ok .t b{color:var(--accent)}
+.msg .raw{grid-column:2;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--bad);display:inline-block}
+.statusbar{display:flex;justify-content:space-between;gap:10px;padding:4px 12px;border-top:1px solid var(--line);background:var(--chrome);font-size:.76rem;color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.statusbar .conn::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.statusbar .bad{color:var(--bad);font-weight:600}
+
+/* guide */
+.gbody{padding:18px 20px 24px}
+.eyebrow{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.gbody h2{font-family:var(--display);font-size:1.45rem;line-height:1.15;margin:4px 0 10px;text-wrap:balance;font-weight:700}
+.prose{font-size:.95rem}
+.prose p{margin:0 0 10px}
+.prose ul{margin:0 0 10px;padding-left:1.2em}
+.prose li{margin-bottom:3px}
+.ex{position:relative;margin:4px 0 12px;background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:10px 12px 10px 12px;font-family:var(--mono);font-size:.8rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.ex .try{display:flex;justify-content:flex-end;margin-top:6px}
+.ex button{border:1px solid var(--accent);color:var(--accent);background:var(--surface);border-radius:5px;padding:1px 10px;font-family:var(--body);font-size:.78rem;font-weight:600}
+.ex button:hover{background:var(--accent-soft)}
+.ops{border-collapse:collapse;margin:0 0 10px;font-size:.88rem}
+.ops td{border-top:1px solid var(--line);padding:3px 12px 3px 0}
+.ops td:first-child{font-family:var(--mono);white-space:nowrap}
+.note{background:var(--amber-soft);border-radius:7px;padding:9px 12px;margin:0 0 10px;font-size:.9rem}
+.note b{color:var(--amber)}
+.task{margin-top:16px;border:1px solid var(--line);border-radius:9px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--sunk)}
+.task .label{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--amber)}
+.task .what{font-weight:600}
+.task .row{display:flex;flex-wrap:wrap;gap:6px}
+.reveal{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:9px 12px;font-size:.9rem}
+.reveal pre{font-family:var(--mono);font-size:.78rem;margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.feedback{border-radius:8px;padding:10px 12px;font-size:.92rem;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.feedback.ok{background:var(--accent-soft)} .feedback.ok b{color:var(--accent)}
+.feedback.no{background:var(--amber-soft)} .feedback.no b{color:var(--amber)}
+.feedback.err{background:var(--bad-soft)} .feedback.err b{color:var(--bad)}
+.next{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:6px 14px;font-weight:700}
+.pager{display:flex;justify-content:space-between;gap:8px;margin-top:18px}
+.ideas{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.ideas button{text-align:left}
+.loading{margin:40px 0;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="toolbar">
+  <div class="brand">
+    <div class="logo"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="3.5" rx="5.5" ry="2" fill="var(--accent-ink)"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9" stroke="var(--accent-ink)" stroke-width="1.5" fill="none"/><path d="M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" stroke="var(--accent-ink)" stroke-width="1.5" fill="none"/></svg></div>
+    <h1>SQL Claims Lab</h1><span>SQL for data analysis</span>
+  </div>
+  <div class="meter" aria-live="polite"><span id="meterText">0 of 16 lessons</span><div class="bar"><i id="meterBar"></i></div></div>
+  <div class="seg" role="group" aria-label="Mode">
+    <button id="modeLessons" aria-pressed="true">Lessons</button>
+    <button id="modeSandbox" aria-pressed="false">Sandbox</button>
+  </div>
+  <div class="tools">
+    <button id="fontDown" aria-label="Smaller text">A−</button>
+    <button id="fontUp" aria-label="Larger text">A+</button>
+    <button id="fsBtn">Full screen</button>
+  </div>
+</header>
+
+<div class="loading" id="loading">Connecting to the database…</div>
+
+<div class="ide" id="ide" hidden>
+  <div class="leftcol">
+  <aside class="panel explorer" aria-label="Explorer">
+    <div class="ptabs" role="tablist">
+      <button role="tab" id="ltLessons" aria-selected="true">Lessons</button>
+      <button role="tab" id="ltDb" aria-selected="false">Database</button>
+    </div>
+    <div class="pscroll" id="lessonPane"><ol class="lessons" id="lessonList"></ol></div>
+    <div class="pscroll" id="dbPane" hidden><div class="tree" id="tree"></div></div>
+  </aside>
+  <aside class="panel ref" aria-label="Quick reference">
+    <div class="ptabs"><span class="label">Quick reference</span></div>
+    <div class="pscroll"><div class="refbody">
+      <h5>Clause order</h5>
+      <dl>
+        <dt>SELECT</dt><dd>which columns</dd>
+        <dt>FROM</dt><dd>which table</dd>
+        <dt>WHERE</dt><dd>filter rows</dd>
+        <dt>GROUP BY</dt><dd>make buckets</dd>
+        <dt>HAVING</dt><dd>filter buckets</dd>
+        <dt>ORDER BY</dt><dd>sort (DESC = largest first)</dd>
+        <dt>LIMIT</dt><dd>keep the first N rows</dd>
+      </dl>
+      <h5>Summaries</h5>
+      <dl><dt>COUNT(*)</dt><dd>number of rows</dd><dt>SUM / AVG</dt><dd>total / average</dd><dt>MIN / MAX</dt><dd>smallest / largest</dd></dl>
+      <h5>Joining</h5>
+      <div class="line">FROM claims c JOIN policies p ON c.policy_id = p.policy_id</div>
+      <h5>Gotchas</h5>
+      <dl><dt>'OH'</dt><dd>text needs single quotes</dd><dt>IS NULL</dt><dd>never = NULL</dd><dt>/ 12.0</dt><dd>keeps the decimals</dd></dl>
+    </div></div>
+  </aside>
+  </div>
+
+  <section class="center">
+    <div class="panel editor-card">
+      <div class="ptabs"><span class="label" id="fileTab" style="text-transform:none;letter-spacing:0;font-family:var(--mono);font-weight:600;background:var(--surface);color:var(--ink);box-shadow:inset 0 2px 0 var(--accent)">lesson_01.sql</span><span class="right">claims_db</span></div>
+      <div class="edtools">
+        <button class="btn run" id="runBtn"><svg width="10" height="12" viewBox="0 0 10 12"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg>Run</button>
+        <button class="btn check" id="checkBtn">Check answer</button>
+        <button class="btn" id="clearBtn">Clear</button>
+        <button class="btn" id="resetDbBtn" hidden>Reset database</button>
+        <span class="keys">Ctrl+Enter or F5 · highlight text to run just that part</span>
+      </div>
+      <div class="clauses" id="clauses"></div>
+      <div class="editor-wrap">
+        <div class="gutter"><pre id="gutter">1</pre></div>
+        <pre class="hl" id="hl" aria-hidden="true"></pre>
+        <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="SQL query editor"></textarea>
+      </div>
+    </div>
+
+    <div class="panel results-card">
+      <div class="ptabs" role="tablist">
+        <button role="tab" id="rtResults" aria-selected="true">Results</button>
+        <button role="tab" id="rtMessages" aria-selected="false">Messages <span class="dot" id="msgDot" hidden></span></button>
+      </div>
+      <div class="rbody" id="resultsBody"><div class="empty">Run a query and its results show up here as a grid, one row per record.</div></div>
+      <div class="rbody" id="messagesBody" hidden><div class="msgs" id="msgs"><div class="empty">Every query you run is logged here, along with any errors.</div></div></div>
+      <div class="statusbar"><span class="conn">claims_db · SQLite</span><span id="status">Ready</span></div>
+    </div>
+  </section>
+
+  <aside class="panel guide" aria-label="Lesson guide">
+    <div class="ptabs"><span class="label">Guide</span><span class="right" id="guideCount"></span></div>
+    <div class="pscroll" id="guideScroll"><div class="gbody" id="guide"></div></div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-asm.js"></script>
+<script>
+(function(){
+"use strict";
+/* ---------- The data: a small Ohio-area insurer ---------- */
+const SEED = `
+CREATE TABLE policyholders (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, age INTEGER, state TEXT, smoker INTEGER);
+INSERT INTO policyholders VALUES
+(1,'Ava','Thompson',34,'OH',0),(2,'Marcus','Lee',52,'PA',1),(3,'Priya','Patel',28,'OH',0),
+(4,'James','Carter',61,'MI',0),(5,'Sofia','Ramirez',45,'OH',1),(6,'Ethan','Brooks',23,'PA',0),
+(7,'Grace','Kim',39,'IN',0),(8,'Noah','Bennett',70,'OH',0),(9,'Lily','Chen',31,'MI',0),
+(10,'Owen','Walsh',48,'IN',1),(11,'Mia','Johnson',56,'OH',0),(12,'Lucas','Hart',27,'PA',0);
+CREATE TABLE policies (policy_id INTEGER PRIMARY KEY, holder_id INTEGER, type TEXT, start_date TEXT, annual_premium INTEGER, deductible INTEGER);
+INSERT INTO policies VALUES
+(101,1,'Auto','2024-03-01',1450,500),(102,1,'Home','2023-07-15',1120,1000),(103,2,'Auto','2022-11-01',2100,500),
+(104,2,'Life','2020-05-20',3600,0),(105,3,'Auto','2025-01-10',1680,1000),(106,4,'Home','2021-09-01',1540,2500),
+(107,4,'Life','2019-02-14',4800,0),(108,5,'Auto','2023-04-22',1890,500),(109,5,'Home','2024-06-30',1310,1000),
+(110,6,'Auto','2025-08-05',2350,500),(111,7,'Home','2022-03-18',980,1000),(112,8,'Life','2018-10-01',6200,0),
+(113,8,'Home','2020-01-12',1760,2500),(114,9,'Auto','2024-12-01',1390,1000),(115,10,'Auto','2023-02-27',2240,500),
+(116,10,'Life','2021-08-09',3900,0),(117,11,'Home','2022-05-05',1430,1000),(118,12,'Auto','2025-03-15',1980,500);
+CREATE TABLE claims (claim_id INTEGER PRIMARY KEY, policy_id INTEGER, claim_date TEXT, amount INTEGER, status TEXT);
+INSERT INTO claims VALUES
+(1,101,'2024-09-12',2300,'Paid'),(2,103,'2023-05-03',4100,'Paid'),(3,103,'2024-01-20',850,'Paid'),
+(4,105,'2025-06-14',6200,'Open'),(5,106,'2022-12-02',12500,'Paid'),(6,108,'2023-10-30',1700,'Paid'),
+(7,108,'2024-07-08',3400,'Denied'),(8,109,'2025-02-19',9800,'Paid'),(9,110,'2025-10-01',5600,'Open'),
+(10,111,'2023-08-25',700,'Denied'),(11,113,'2023-03-07',15200,'Paid'),(12,114,'2025-05-22',1250,'Paid'),
+(13,115,'2023-11-15',2900,'Paid'),(14,115,'2024-12-03',4700,'Paid'),(15,115,'2025-09-09',3300,'Open'),
+(16,117,'2024-02-14',2050,'Paid'),(17,118,'2025-07-30',1100,'Denied'),(18,102,'2025-01-05',3600,'Paid');`;
+
+const SCHEMA = [
+  {name:"policyholders", about:"People who buy insurance", cols:[
+    ["id","number","KEY"],["first_name","text"],["last_name","text"],["age","number"],["state","text"],["smoker","0 or 1"]]},
+  {name:"policies", about:"Each insurance contract", cols:[
+    ["policy_id","number","KEY"],["holder_id","number","→ policyholders.id"],["type","Auto / Home / Life"],["start_date","date text"],["annual_premium","dollars"],["deductible","dollars"]]},
+  {name:"claims", about:"Requests for payment", cols:[
+    ["claim_id","number","KEY"],["policy_id","number","→ policies.policy_id"],["claim_date","date text"],["amount","dollars"],["status","Paid / Open / Denied"]]}
+];
+
+/* ---------- Lessons ---------- */
+const L = [
+{unit:"The basics", title:"Tables, rows and columns",
+ body:`<div class="note"><b>About this screen.</b> It's laid out like the tools analysts use at work, such as DBeaver, SQL Server Management Studio, DataGrip and Snowflake. The <b>database explorer</b> is on the left, you write queries in the <b>editor</b> in the middle, answers appear in the <b>results grid</b> below it, and errors show up in the <b>Messages</b> tab. Learn this layout here and a real tool will feel familiar.</div>
+<p>A <b>database</b> is a set of <b>tables</b>. A table looks like a spreadsheet tab: every <b>row</b> is one record (one person, one policy, one claim), and every <b>column</b> is one fact about it (age, state, premium).</p>
+<p>This lab uses a small insurance company with three tables: <code>policyholders</code>, <code>policies</code> and <code>claims</code>. You can see their columns in the <b>Database</b> tab on the left at any time.</p>
+<p><b>SQL</b> (Structured Query Language, said "sequel" or "S-Q-L") is how you ask a database questions. A question is called a <b>query</b>. Here is the simplest one. Press <b>Load</b>, then <b>Run</b>:</p>
+<pre class="ex">SELECT * FROM policyholders;</pre>
+<ul><li><code>SELECT</code> means "show me".</li><li><code>*</code> (star) means "every column".</li><li><code>FROM policyholders</code> says which table.</li><li>The <code>;</code> marks the end of the query. It's optional here, but a good habit.</li></ul>
+<div class="note"><b>Capital letters?</b> SQL doesn't care about upper or lower case for keywords. People write keywords in CAPS so they stand out from table and column names.</div>`,
+ task:"Your manager asks: \"Can I see our full list of policies?\" Show every column and row from the policies table.",
+ hint:"Same shape as the example, just a different table name after FROM.",
+ sol:"SELECT * FROM policies;"},
+
+{unit:"The basics", title:"Picking columns",
+ body:`<p>Usually you don't want every column. List the ones you want after <code>SELECT</code>, separated by commas:</p>
+<pre class="ex">SELECT first_name, state FROM policyholders;</pre>
+<p>The columns come back in the order you list them. Spelling must match the Database tab exactly, including underscores. Tip: click a column name in the Database tab to drop it into the editor.</p>
+<div class="note"><b>Most common mistake:</b> forgetting a comma, or adding one after the last column (<code>SELECT age, state, FROM</code>). Commas go <i>between</i> items only.</div>`,
+ task:"Build a simple customer list: the first_name, last_name and age of every policyholder.",
+ hint:"Three column names after SELECT, with commas between them, then FROM policyholders.",
+ sol:"SELECT first_name, last_name, age FROM policyholders;"},
+
+{unit:"Filtering", title:"Filtering rows with WHERE",
+ body:`<p><code>WHERE</code> keeps only the rows that pass a test. It goes after <code>FROM</code>:</p>
+<pre class="ex">SELECT * FROM policyholders
+WHERE state = 'OH';</pre>
+<p>Text values go in <b>single quotes</b>: <code>'OH'</code>. Without quotes, SQL thinks <code>OH</code> is a column name and gives an error. Text comparisons are also exact: <code>'oh'</code> won't match <code>'OH'</code>.</p>
+<p>Notice a query can span several lines. Line breaks are just for readability.</p>`,
+ task:"The homeowners team wants to review their book. Show all columns for policies whose type is Home.",
+ hint:"FROM policies, then WHERE type = '...'. Capital H, and single quotes.",
+ sol:"SELECT * FROM policies WHERE type = 'Home';"},
+
+{unit:"Filtering", title:"Comparing numbers",
+ body:`<p>Numbers don't need quotes, and you can use these comparison operators:</p>
+<table class="ops"><tr><td>=</td><td>equal to</td></tr><tr><td>&lt;&gt; or !=</td><td>not equal to</td></tr><tr><td>&gt;</td><td>greater than</td></tr><tr><td>&lt;</td><td>less than</td></tr><tr><td>&gt;=</td><td>greater than or equal to</td></tr><tr><td>&lt;=</td><td>less than or equal to</td></tr></table>
+<pre class="ex">SELECT policy_id, type, annual_premium
+FROM policies
+WHERE annual_premium > 2000;</pre>
+<p>Dates stored as text like <code>'2024-03-01'</code> also compare correctly, because year-month-day sorts in time order: <code>WHERE start_date >= '2024-01-01'</code>.</p>`,
+ task:"Claims over $5,000 need a second review. Show all columns for claims with an amount of 5,000 or more.",
+ hint:"Use >= with the number 5000. No comma inside the number, no quotes.",
+ sol:"SELECT * FROM claims WHERE amount >= 5000;"},
+
+{unit:"Filtering", title:"Combining conditions: AND, OR, IN",
+ body:`<p>Join tests with <code>AND</code> (both must be true) or <code>OR</code> (either one is enough):</p>
+<pre class="ex">SELECT * FROM policies
+WHERE type = 'Auto' AND deductible = 500;</pre>
+<p><code>IN</code> is a shortcut for many ORs on one column:</p>
+<pre class="ex">SELECT * FROM policyholders
+WHERE state IN ('MI', 'IN');</pre>
+<div class="note"><b>Mixing AND with OR?</b> Use parentheses to say what you mean: <code>WHERE (state = 'MI' OR state = 'IN') AND age > 40</code>. Without them, AND is evaluated first, which can surprise you.</div>
+<p>In this data, <code>smoker</code> is <code>1</code> for smokers and <code>0</code> for non-smokers. Storing yes/no as 1/0 is very common.</p>`,
+ task:"Underwriting is studying younger smokers. Find policyholders who are smokers and younger than 50. Show all columns.",
+ hint:"Two tests joined by AND: smoker = 1, and age < 50.",
+ sol:"SELECT * FROM policyholders WHERE smoker = 1 AND age < 50;"},
+
+{unit:"Filtering", title:"Sorting and limiting",
+ body:`<p><code>ORDER BY</code> sorts the results. Add <code>DESC</code> for largest first (descending); the default is <code>ASC</code>, smallest first.</p>
+<pre class="ex">SELECT first_name, age FROM policyholders
+ORDER BY age DESC;</pre>
+<p><code>LIMIT</code> keeps only the first few rows. Combined with ORDER BY, it answers "top N" questions:</p>
+<pre class="ex">SELECT policy_id, annual_premium FROM policies
+ORDER BY annual_premium
+LIMIT 3;</pre>
+<p>That's the three cheapest policies. Clause order matters: <code>WHERE</code> comes before <code>ORDER BY</code>, and <code>LIMIT</code> is always last. The strip above the editor shows the order and flags it if yours is off.</p>`,
+ task:"Which claims cost the most? Show the claim_id and amount of the 3 largest claims, biggest first.",
+ hint:"ORDER BY amount DESC, then LIMIT 3.",
+ sol:"SELECT claim_id, amount FROM claims ORDER BY amount DESC LIMIT 3;", ordered:true},
+
+{unit:"Calculating", title:"Doing math and naming columns",
+ body:`<p>You can calculate inside <code>SELECT</code> with <code>+ - * /</code>, and give the result a name with <code>AS</code>:</p>
+<pre class="ex">SELECT policy_id, annual_premium, annual_premium * 1.05 AS premium_after_5pct
+FROM policies;</pre>
+<p><code>ROUND(value, 2)</code> rounds to 2 decimal places.</p>
+<div class="note"><b>Watch out for whole-number division.</b> <code>annual_premium / 12</code> divides a whole number by a whole number, so SQLite throws away the remainder: 1450 / 12 gives 120, not 120.83. Write <code>12.0</code> to get decimals.</div>
+<pre class="ex">SELECT 1450 / 12 AS whole, 1450 / 12.0 AS decimal;</pre>`,
+ task:"Show each policy_id and its monthly premium (annual_premium divided by 12), rounded to 2 decimals, named monthly_premium.",
+ hint:"ROUND(annual_premium / 12.0, 2) AS monthly_premium. Remember the .0!",
+ sol:"SELECT policy_id, ROUND(annual_premium / 12.0, 2) AS monthly_premium FROM policies;"},
+
+{unit:"Calculating", title:"Summarizing: COUNT, SUM, AVG",
+ body:`<p><b>Aggregate functions</b> squash many rows into a single number:</p>
+<table class="ops"><tr><td>COUNT(*)</td><td>how many rows</td></tr><tr><td>SUM(col)</td><td>total</td></tr><tr><td>AVG(col)</td><td>average (mean)</td></tr><tr><td>MIN(col) / MAX(col)</td><td>smallest / largest</td></tr></table>
+<pre class="ex">SELECT COUNT(*) AS num_claims, SUM(amount) AS total, AVG(amount) AS average
+FROM claims;</pre>
+<p>WHERE filters the rows <i>before</i> they get summarized:</p>
+<pre class="ex">SELECT COUNT(*) FROM claims WHERE status = 'Open';</pre>
+<p><code>COUNT(DISTINCT col)</code> counts unique values, e.g. how many different states: <code>SELECT COUNT(DISTINCT state) FROM policyholders;</code></p>`,
+ task:"Finance wants one number: the total dollar amount of all claims with status Paid.",
+ hint:"SUM(amount) FROM claims, with WHERE status = 'Paid'.",
+ sol:"SELECT SUM(amount) FROM claims WHERE status = 'Paid';"},
+
+{unit:"Calculating", title:"Grouping with GROUP BY",
+ body:`<p><code>GROUP BY</code> splits rows into buckets and runs the aggregate once per bucket. This counts policyholders in each state:</p>
+<pre class="ex">SELECT state, COUNT(*) AS people
+FROM policyholders
+GROUP BY state;</pre>
+<p>Think of it as: sort the rows into piles by <code>state</code>, then count each pile. You get one result row per pile.</p>
+<div class="note"><b>Rule of thumb:</b> every column in SELECT should either be in GROUP BY or be inside an aggregate like COUNT or SUM. Otherwise SQL has to pick an arbitrary value from the pile.</div>`,
+ task:"For each policy type, show the type, the number of policies, and the average annual premium rounded to 2 decimals.",
+ hint:"SELECT type, COUNT(*), ROUND(AVG(annual_premium), 2) FROM policies GROUP BY type.",
+ sol:"SELECT type, COUNT(*) AS num_policies, ROUND(AVG(annual_premium), 2) AS avg_premium FROM policies GROUP BY type;"},
+
+{unit:"Calculating", title:"Filtering groups with HAVING",
+ body:`<p><code>WHERE</code> filters rows before grouping. To filter the <i>groups</i> after they're counted, use <code>HAVING</code>:</p>
+<pre class="ex">SELECT type, AVG(annual_premium) AS avg_premium
+FROM policies
+GROUP BY type
+HAVING AVG(annual_premium) > 2000;</pre>
+<p>You can't write <code>WHERE AVG(...) > 2000</code>, because when WHERE runs, the averages don't exist yet.</p>
+<p>Full clause order so far: <code>SELECT … FROM … WHERE … GROUP BY … HAVING … ORDER BY … LIMIT</code>.</p>`,
+ task:"Which states are big enough to analyze on their own? Show each state with more than 2 policyholders, and its count.",
+ hint:"GROUP BY state, then HAVING COUNT(*) > 2.",
+ sol:"SELECT state, COUNT(*) FROM policyholders GROUP BY state HAVING COUNT(*) > 2;"},
+
+{unit:"Joining tables", title:"JOIN: connecting two tables",
+ body:`<p>A claim row only stores a <code>policy_id</code>. To know whether it was an Auto or Home claim, you look up that policy. Columns that point at another table's rows are called <b>keys</b>, and in the Database tab they're marked with an arrow.</p>
+<p><code>JOIN … ON …</code> glues rows together wherever the keys match:</p>
+<pre class="ex">SELECT claims.claim_id, claims.amount, policies.type
+FROM claims
+JOIN policies ON claims.policy_id = policies.policy_id;</pre>
+<p>Writing <code>table.column</code> says which table a column comes from. That matters when both tables have a column with the same name, like <code>policy_id</code> here.</p>
+<p>Typing table names gets long, so people use short <b>aliases</b>:</p>
+<pre class="ex">SELECT c.claim_id, c.amount, p.type, p.deductible
+FROM claims c
+JOIN policies p ON c.policy_id = p.policy_id;</pre>`,
+ task:"List every claim's claim_id, amount and status, along with the start_date of its policy.",
+ hint:"FROM claims JOIN policies ON claims.policy_id = policies.policy_id, then pick the four columns.",
+ sol:"SELECT c.claim_id, c.amount, c.status, p.start_date FROM claims c JOIN policies p ON c.policy_id = p.policy_id;"},
+
+{unit:"Joining tables", title:"Joining three tables",
+ body:`<p>Joins chain. Claims link to policies, and policies link to policyholders, so you can walk from a claim all the way to a person's name:</p>
+<pre class="ex">SELECT h.first_name, h.last_name, c.claim_id, c.amount
+FROM claims c
+JOIN policies p ON c.policy_id = p.policy_id
+JOIN policyholders h ON p.holder_id = h.id;</pre>
+<p>Joins work with everything you've learned. Add <code>GROUP BY</code> to total things up per person, and <code>ORDER BY</code> to rank them.</p>`,
+ task:"Show each policyholder's first_name, last_name and the total amount of all their claims (any status), highest total first.",
+ hint:"Use the three-table join from the example, then GROUP BY h.id, h.first_name, h.last_name, SELECT SUM(c.amount), and ORDER BY that sum DESC.",
+ sol:"SELECT h.first_name, h.last_name, SUM(c.amount) AS total FROM claims c JOIN policies p ON c.policy_id = p.policy_id JOIN policyholders h ON p.holder_id = h.id GROUP BY h.id, h.first_name, h.last_name ORDER BY total DESC;", ordered:true},
+
+{unit:"Joining tables", title:"LEFT JOIN and missing data",
+ body:`<p>A plain <code>JOIN</code> drops rows that have no match. A policy with zero claims disappears from <code>policies JOIN claims</code>.</p>
+<p><code>LEFT JOIN</code> keeps every row from the left (first) table. Where no match exists, the right side's columns are filled with <code>NULL</code>, which means "no value":</p>
+<pre class="ex">SELECT p.policy_id, p.type, c.claim_id
+FROM policies p
+LEFT JOIN claims c ON p.policy_id = c.policy_id;</pre>
+<p>Scroll the results and you'll see some rows with NULL in claim_id. To test for NULL, use <code>IS NULL</code> or <code>IS NOT NULL</code>. Writing <code>= NULL</code> never matches anything, which is a classic trap.</p>`,
+ task:"Which policies have never had a claim? Show policy_id and type.",
+ hint:"Take the LEFT JOIN example and add WHERE c.claim_id IS NULL.",
+ sol:"SELECT p.policy_id, p.type FROM policies p LEFT JOIN claims c ON p.policy_id = c.policy_id WHERE c.claim_id IS NULL;"},
+
+{unit:"Actuarial work", title:"Labeling rows with CASE",
+ body:`<p><code>CASE</code> is SQL's if/then. It checks conditions top to bottom and returns the first match:</p>
+<pre class="ex">SELECT claim_id, amount,
+  CASE
+    WHEN amount >= 10000 THEN 'Large'
+    WHEN amount >= 3000 THEN 'Medium'
+    ELSE 'Small'
+  END AS size_band
+FROM claims;</pre>
+<p>Banding like this is everyday actuarial work: age bands, claim size bands, territory groups. Once a band exists you can <code>GROUP BY</code> it.</p>`,
+ task:"Show each policyholder's first_name, age, and an age_band column: 'Under 30' for ages below 30, '30-49' for 30 to 49, and '50+' for 50 and older.",
+ hint:"CASE WHEN age < 30 THEN 'Under 30' WHEN age < 50 THEN '30-49' ELSE '50+' END AS age_band",
+ sol:"SELECT first_name, age, CASE WHEN age < 30 THEN 'Under 30' WHEN age < 50 THEN '30-49' ELSE '50+' END AS age_band FROM policyholders;"},
+
+{unit:"Actuarial work", title:"Rates and percentages",
+ body:`<p>Analysts report rates more than raw counts: denial rate, retention rate, share of total. The trick is counting only some rows inside a group with <code>SUM(CASE … THEN 1 ELSE 0 END)</code>. Each matching row adds 1, everything else adds 0:</p>
+<pre class="ex">SELECT
+  SUM(CASE WHEN status = 'Paid' THEN 1 ELSE 0 END) AS paid_count,
+  COUNT(*) AS all_claims
+FROM claims;</pre>
+<p>Divide by <code>COUNT(*)</code> and multiply by <code>100.0</code> (the .0 avoids whole-number division) to get a percentage. Here's the share of all claims still open:</p>
+<pre class="ex">SELECT ROUND(100.0 * SUM(CASE WHEN status = 'Open' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_open
+FROM claims;</pre>`,
+ task:"Claims management wants denial rates by line. For each policy type with claims, show: type, number of claims, number denied, and denial rate as a percent rounded to 2 decimals.",
+ hint:"Join claims to policies, GROUP BY p.type. Denied count is SUM(CASE WHEN c.status = 'Denied' THEN 1 ELSE 0 END). Rate is ROUND(100.0 * that / COUNT(*), 2).",
+ sol:"SELECT p.type, COUNT(*) AS num_claims, SUM(CASE WHEN c.status = 'Denied' THEN 1 ELSE 0 END) AS denied, ROUND(100.0 * SUM(CASE WHEN c.status = 'Denied' THEN 1 ELSE 0 END) / COUNT(*), 2) AS denial_rate FROM claims c JOIN policies p ON c.policy_id = p.policy_id GROUP BY p.type;"},
+
+{unit:"Actuarial work", title:"Capstone: frequency and severity",
+ body:`<p>Pricing actuaries split expected losses into two pieces:</p>
+<ul><li><b>Frequency</b>: how often claims happen (claim count).</li><li><b>Severity</b>: how big a claim is on average (total amount ÷ claim count).</li></ul>
+<p>Expected loss per policy is frequency × severity, often called the <b>pure premium</b>. Here's severity for the whole book:</p>
+<pre class="ex">SELECT COUNT(*) AS num_claims,
+       SUM(amount) AS total_amount,
+       ROUND(SUM(amount) * 1.0 / COUNT(*), 2) AS severity
+FROM claims;</pre>
+<p>Now break it out by line of business. This uses SELECT, a JOIN, aggregates, ROUND and GROUP BY all at once.</p>`,
+ task:"For each policy type that has claims, show: type, number of claims, total claim amount, and average claim amount (severity) rounded to 2 decimals.",
+ hint:"FROM claims c JOIN policies p ON c.policy_id = p.policy_id, GROUP BY p.type. Severity can be ROUND(AVG(c.amount), 2).",
+ sol:"SELECT p.type, COUNT(*) AS num_claims, SUM(c.amount) AS total_amount, ROUND(AVG(c.amount), 2) AS severity FROM claims c JOIN policies p ON c.policy_id = p.policy_id GROUP BY p.type;"}
+];
+
+const IDEAS = [
+ ["Loss ratio by type","-- Loss ratio = paid claims / premium\nSELECT p.type,\n  SUM(p.annual_premium) AS premium,\n  (SELECT SUM(c.amount) FROM claims c JOIN policies p2 ON c.policy_id = p2.policy_id\n   WHERE p2.type = p.type AND c.status = 'Paid') AS paid_claims\nFROM policies p\nGROUP BY p.type;"],
+ ["Claims per year","SELECT substr(claim_date, 1, 4) AS year, COUNT(*) AS claims, SUM(amount) AS total\nFROM claims\nGROUP BY year\nORDER BY year;"],
+ ["Smoker vs non-smoker premium","SELECT h.smoker, p.type, ROUND(AVG(p.annual_premium), 2) AS avg_premium\nFROM policies p JOIN policyholders h ON p.holder_id = h.id\nGROUP BY h.smoker, p.type;"],
+ ["Claims by age band","SELECT CASE WHEN h.age < 30 THEN 'Under 30' WHEN h.age < 50 THEN '30-49' ELSE '50+' END AS age_band,\n  COUNT(c.claim_id) AS claims, SUM(c.amount) AS total\nFROM policyholders h\nJOIN policies p ON p.holder_id = h.id\nLEFT JOIN claims c ON c.policy_id = p.policy_id\nGROUP BY age_band;"],
+ ["Share of dollars by status","SELECT status, SUM(amount) AS total,\n  ROUND(100.0 * SUM(amount) / (SELECT SUM(amount) FROM claims), 1) AS pct_of_dollars\nFROM claims\nGROUP BY status\nORDER BY total DESC;"],
+ ["Claims by state","SELECT h.state, COUNT(*) AS claims, ROUND(AVG(c.amount), 2) AS severity\nFROM claims c\nJOIN policies p ON c.policy_id = p.policy_id\nJOIN policyholders h ON p.holder_id = h.id\nGROUP BY h.state\nORDER BY claims DESC;"]
+];
+
+
+const DBTREE = [
+  {name:"policyholders", cols:[["id","INTEGER","pk"],["first_name","TEXT"],["last_name","TEXT"],["age","INTEGER"],["state","TEXT","","2-letter code"],["smoker","INTEGER","","1 = smoker, 0 = not"]]},
+  {name:"policies", cols:[["policy_id","INTEGER","pk"],["holder_id","INTEGER","fk","→ policyholders.id"],["type","TEXT","","Auto, Home or Life"],["start_date","TEXT","","YYYY-MM-DD"],["annual_premium","INTEGER","","dollars per year"],["deductible","INTEGER","","dollars"]]},
+  {name:"claims", cols:[["claim_id","INTEGER","pk"],["policy_id","INTEGER","fk","→ policies.policy_id"],["claim_date","TEXT","","YYYY-MM-DD"],["amount","INTEGER","","dollars"],["status","TEXT","","Paid, Open or Denied"]]}
+];
+
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem("sqllab:"+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem("sqllab:"+k, JSON.stringify(v)); }catch(e){} }
+};
+let SQL = null, sandboxDb = null, mode = "lessons";
+let cur = Math.min(store.get("cur",0), L.length-1);
+let done = new Set(store.get("done",[]));
+let drafts = store.get("drafts",{});
+let fontPx = store.get("font",16);
+const $ = id => document.getElementById(id);
+const ed = $("editor"), hl = $("hl"), gut = $("gutter");
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const KW = new Set("SELECT FROM WHERE AND OR NOT IN IS NULL AS ON JOIN LEFT RIGHT INNER OUTER GROUP BY ORDER HAVING LIMIT DESC ASC DISTINCT CASE WHEN THEN ELSE END INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE BETWEEN LIKE UNION ALL OFFSET".split(" "));
+const FN = new Set("COUNT SUM AVG MIN MAX ROUND SUBSTR LENGTH UPPER LOWER COALESCE ABS".split(" "));
+function highlight(src){
+  const re = /(--[^\n]*)|('(?:[^']|'')*'?)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]+)/g;
+  let out = "", last = 0, m;
+  while((m = re.exec(src))){
+    out += esc(src.slice(last, m.index)); const t = m[0];
+    if(m[1]) out += `<span class="t-cmt">${esc(t)}</span>`;
+    else if(m[2]) out += `<span class="t-str">${esc(t)}</span>`;
+    else if(m[3]) out += `<span class="t-num">${esc(t)}</span>`;
+    else { const u = t.toUpperCase(); out += KW.has(u) ? `<span class="t-kw">${esc(t)}</span>` : FN.has(u) ? `<span class="t-fn">${esc(t)}</span>` : esc(t); }
+    last = m.index + t.length;
+  }
+  return out + esc(src.slice(last)) + "\n ";
+}
+const CLAUSES = [["SELECT",/\bSELECT\b/],["FROM",/\bFROM\b/],["WHERE",/\bWHERE\b/],["GROUP BY",/\bGROUP\s+BY\b/],["HAVING",/\bHAVING\b/],["ORDER BY",/\bORDER\s+BY\b/],["LIMIT",/\bLIMIT\b/]];
+function renderClauses(){
+  const s = ed.value.replace(/--[^\n]*/g," ").replace(/'(?:[^']|'')*'?/g,"''").toUpperCase().replace(/\(\s*SELECT[\s\S]*?\)/g,"()");
+  const pos = CLAUSES.map(([,r]) => { const m = r.exec(s); return m ? m.index : -1; });
+  let bad = null, maxSeen = -1, maxName = "";
+  pos.forEach((p,i) => { if(p<0) return; if(p < maxSeen && !bad) bad = [CLAUSES[i][0], maxName]; if(p > maxSeen){ maxSeen = p; maxName = CLAUSES[i][0]; } });
+  let h = `<span class="lab">Clause order</span>`;
+  CLAUSES.forEach(([n],i) => { if(i) h += `<span class="arrow">›</span>`; h += `<span class="clause ${pos[i]<0?"":(bad&&bad[0]===n?"wrong":"on")}">${n}</span>`; });
+  if(bad) h += `<span class="clause-msg">${bad[0]} should come before ${bad[1]}.</span>`;
+  $("clauses").innerHTML = h;
+}
+function syncScroll(){ hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; gut.style.transform = `translateY(${-ed.scrollTop}px)`; }
+function syncEditor(){
+  hl.innerHTML = highlight(ed.value);
+  const n = ed.value.split("\n").length; let g = ""; for(let i=1;i<=n;i++) g += i + "\n"; gut.textContent = g;
+  syncScroll(); renderClauses();
+}
+
+function newDb(){ const db = new SQL.Database(); db.run(SEED); return db; }
+function runAll(db, sql){
+  let last = null, changed = 0;
+  if(typeof db.iterateStatements === "function"){
+    for(const stmt of db.iterateStatements(sql)){
+      const cols = stmt.getColumnNames(), vals = [];
+      while(stmt.step()) vals.push(stmt.get());
+      if(cols.length) last = {columns:cols, values:vals}; else changed++;
+      stmt.free();
+    }
+  } else { const r = db.exec(sql); if(r.length) last = r[r.length-1]; }
+  return {result:last, changed};
+}
+function friendly(msg){
+  let m;
+  if((m = /no such column: (.+)/.exec(msg))) return `There's no column called <code>${esc(m[1])}</code>. Check the spelling in the Database tab. If it's a text value like a state or a type, it needs single quotes around it.`;
+  if((m = /no such table: (.+)/.exec(msg))) return `There's no table called <code>${esc(m[1])}</code>. The tables are policyholders, policies and claims.`;
+  if((m = /ambiguous column name: (.+)/.exec(msg))) return `<code>${esc(m[1])}</code> exists in more than one of your joined tables. Put the table name or alias in front, like <code>c.${esc(m[1])}</code>.`;
+  if((m = /near "(.+?)": syntax error/.exec(msg))) return `SQL got confused near <code>${esc(m[1])}</code>. Look for a missing or extra comma, a missing quote, or clauses in the wrong order.`;
+  if(/incomplete input/.test(msg)) return `The query ends too early. Check for a missing closing parenthesis or quote, or a clause with nothing after it.`;
+  if(/misuse of aggregate/.test(msg)) return `An aggregate like COUNT or AVG is in a place it can't go. To filter on an aggregate, use HAVING instead of WHERE.`;
+  if(/no tables specified/.test(msg)) return `The query uses a column but never says which table. Add FROM and a table name.`;
+  return `The database couldn't run that query.`;
+}
+
+/* ---------- results + messages ---------- */
+function fmt(v){
+  if(v === null) return {t:"NULL", cls:"null"};
+  if(typeof v === "number") return {t: Number.isInteger(v) ? String(v) : String(Math.round(v*10000)/10000), cls:"n"};
+  return {t:String(v), cls:""};
+}
+function showResult(res, note){
+  const box = $("resultsBody");
+  if(!res){ box.innerHTML = `<div class="empty">${note || "The statement ran but didn't return any rows."}</div>`; return; }
+  if(!res.values.length){ box.innerHTML = `<div class="empty">0 rows. The query is valid, but no rows passed your filter.</div>`; return; }
+  let h = `<table class="grid"><thead><tr><th class="rn"></th>${res.columns.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>`;
+  res.values.slice(0,500).forEach((r,i) => { h += `<tr><td class="rn">${i+1}</td>` + r.map(v => { const f = fmt(v); return `<td class="${f.cls}">${esc(f.t)}</td>`; }).join("") + "</tr>"; });
+  box.innerHTML = h + "</tbody></table>";
+  box.scrollTop = 0;
+}
+let msgCount = 0;
+function logMsg(kind, sql, html, raw){
+  const list = $("msgs"); if(!msgCount) list.innerHTML = ""; msgCount++;
+  const t = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  const first = sql.trim().replace(/\s+/g," ");
+  const d = document.createElement("div"); d.className = "msg " + kind;
+  d.innerHTML = `<span class="ts">${t}</span><span class="q">${esc(first.length>90?first.slice(0,90)+"…":first)}</span><span class="t">${html}</span>${raw?`<span class="raw">${esc(raw)}</span>`:""}`;
+  list.appendChild(d); $("messagesBody").scrollTop = 1e9;
+  if(kind === "err" && $("rtMessages").getAttribute("aria-selected") !== "true") $("msgDot").hidden = false;
+}
+function setRTab(t){
+  $("rtResults").setAttribute("aria-selected", t==="results"); $("rtMessages").setAttribute("aria-selected", t==="messages");
+  $("resultsBody").hidden = t!=="results"; $("messagesBody").hidden = t!=="messages";
+  if(t==="messages") $("msgDot").hidden = true;
+}
+function setStatus(text, bad){ $("status").innerHTML = bad ? `<span class="bad">${esc(text)}</span>` : esc(text); }
+function setFeedback(kind, html){
+  const f = $("feedback"); if(!f) return;
+  f.innerHTML = kind ? `<div class="feedback ${kind}" role="status">${html}</div>` : "";
+  const nb = $("nextBtn"); if(nb) nb.onclick = () => go(cur+1);
+  if(kind) f.scrollIntoView({block:"nearest", behavior:"smooth"});
+}
+
+/* ---------- run + check ---------- */
+function getSql(){
+  const s = ed.selectionStart, e = ed.selectionEnd;
+  if(e > s){ const sel = ed.value.slice(s,e); if(sel.replace(/--[^\n]*/g,"").trim()) return {sql:sel, sel:true}; }
+  return {sql:ed.value, sel:false};
+}
+function execute(){
+  const {sql, sel} = getSql();
+  if(!sql.replace(/--[^\n]*/g,"").trim()){ setStatus("Nothing to run", true); logMsg("err", "(empty)", "<b>Nothing to run.</b> Type a query in the editor first."); setRTab("messages"); return null; }
+  const db = mode === "sandbox" ? sandboxDb : newDb();
+  const t0 = performance.now();
+  try{
+    const {result, changed} = runAll(db, sql);
+    const ms = Math.max(1, Math.round(performance.now() - t0));
+    if(result){
+      const n = result.values.length;
+      showResult(result); setRTab("results");
+      setStatus(`${n} row${n===1?"":"s"} · ${result.columns.length} col${result.columns.length===1?"":"s"} · ${ms} ms${sel?" · selection":""}`);
+      logMsg("ok", sql, `<b>Success.</b> ${n} row${n===1?"":"s"} returned in ${ms} ms${sel?" (ran the highlighted text only)":""}.`);
+    } else {
+      showResult(null, `Done. ${changed} statement${changed===1?"":"s"} ran. Nothing to show because it didn't SELECT anything.`);
+      setStatus(`Done · ${ms} ms`); logMsg("ok", sql, `<b>Success.</b> ${changed} statement${changed===1?"":"s"} ran in ${ms} ms.`); setRTab("messages");
+    }
+    return {result};
+  }catch(e){
+    showResult(null, "No results because the query has an error. Open the Messages tab to see what went wrong.");
+    setStatus("Error", true); logMsg("err", sql, `<b>Error.</b> ${friendly(e.message)}`, e.message); setRTab("messages");
+    return null;
+  }finally{ if(mode === "lessons") db.close(); }
+}
+function norm(v){
+  if(v === null) return "∅";
+  if(typeof v === "number") return String(Math.round(v*100)/100);
+  const n = Number(v); if(v !== "" && !isNaN(n)) return String(Math.round(n*100)/100);
+  return String(v);
+}
+function compare(user, sol, ordered){
+  if(!user) return "Your query ran but didn't return a table. Answers start with SELECT.";
+  const uc = user.columns.length, sc = sol.columns.length;
+  const U = user.values.map(r => r.map(norm)), S = sol.values.map(r => r.map(norm)), key = r => JSON.stringify(r);
+  if(uc !== sc) return `Your result has ${uc} column${uc===1?"":"s"}; the answer has ${sc}. Re-read which columns the question asks for.`;
+  if(U.length !== S.length) return `Your result has ${U.length} row${U.length===1?"":"s"}; the answer has ${S.length}. ${U.length > S.length ? "Your filter may be too loose." : "Your filter may be too strict."}`;
+  const us = U.map(key).sort().join("|"), ss = S.map(key).sort().join("|");
+  if(ordered){
+    if(U.every((r,i) => key(r) === key(S[i]))) return true;
+    if(us === ss) return "Right rows, wrong order. Check your ORDER BY (and DESC).";
+  } else if(us === ss) return true;
+  const bag = r => key([...r].sort());
+  if(U.map(bag).sort().join("|") === S.map(bag).sort().join("|")) return "Right data, but the columns are in a different order than the question lists them.";
+  if(/\/\s*12\b(?!\.)/.test(ed.value)) return "Close. Your numbers are whole when they should have decimals. Divide by 12.0, not 12.";
+  return "The shape is right, but some values differ from the answer. Compare your results with what the question asks for.";
+}
+function check(){
+  const lesson = L[cur];
+  const r = execute();
+  if(!r){ setFeedback("err", `<span><b>Your query has an error.</b> The Messages tab below the editor explains it.</span>`); return; }
+  const db = newDb(); let sol; try{ sol = runAll(db, lesson.sol).result; } finally { db.close(); }
+  const v = compare(r.result, sol, lesson.ordered);
+  if(v === true){
+    const first = !done.has(cur); done.add(cur); store.set("done",[...done]); renderLessons(); renderMeter();
+    const last = cur === L.length-1;
+    setFeedback("ok", `<span><b>Correct!</b> ${first ? "Lesson "+(cur+1)+" complete." : "Still correct."}${last ? " That's the whole course. Try the Sandbox next." : ""}</span>${last?"":`<button class="next" id="nextBtn">Next lesson →</button>`}`);
+  } else setFeedback("no", `<span><b>Not quite.</b> ${v}</span>`);
+}
+
+/* ---------- rendering ---------- */
+function renderMeter(){ $("meterText").textContent = `${done.size} of ${L.length} lessons`; $("meterBar").style.width = (done.size/L.length*100)+"%"; }
+function renderLessons(){
+  let h = "", unit = "";
+  L.forEach((l,i) => {
+    if(l.unit !== unit){ unit = l.unit; h += `<li class="unit">${esc(unit)}</li>`; }
+    h += `<li class="${done.has(i)?"done":""}"><button data-i="${i}" ${i===cur&&mode==="lessons"?'aria-current="true"':""}><span class="num">${done.has(i)?"✓":i+1}</span><span>${esc(l.title)}</span></button></li>`;
+  });
+  $("lessonList").innerHTML = h;
+}
+function renderTree(){
+  const db = newDb(); const counts = {};
+  DBTREE.forEach(t => counts[t.name] = db.exec(`SELECT COUNT(*) FROM ${t.name}`)[0].values[0][0]); db.close();
+  const dbIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="3.5" rx="5.5" ry="2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>`;
+  const tblIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M1.5 6h13M6 6v7.5"/></svg>`;
+  let h = `<div class="node db"><span class="ic">${dbIcon}</span>claims_db</div><details open><summary><span class="caret">▶</span><span>Tables</span><span class="tcount">(${DBTREE.length})</span></summary>`;
+  DBTREE.forEach(t => {
+    h += `<details open><summary><span class="caret">▶</span><span class="ic" style="color:var(--muted);display:flex">${tblIcon}</span><span class="tname">${t.name}</span><span class="tcount">${counts[t.name]}</span><span class="tact"><button data-ins="${t.name}" title="Insert table name">+</button><button data-peek="${t.name}" title="Show the first rows">View</button></span></summary><ul class="cols">`;
+    t.cols.forEach(([c,ty,k,note]) => {
+      h += `<li><button data-ins="${c}"><span class="cname">${c}${k==="pk"?'<span class="badge pk">PK</span>':k==="fk"?'<span class="badge fk">FK</span>':""}</span><span class="cmeta"><span class="ctype">${ty}</span>${note?` · ${esc(note)}`:""}</span></button></li>`;
+    });
+    h += `</ul></details>`;
+  });
+  h += `</details><p class="tip"><b>PK</b> (primary key) uniquely identifies each row. <b>FK</b> (foreign key) points to a row in another table, which is how JOIN connects them. Click any name to insert it into the editor.</p>`;
+  $("tree").innerHTML = h;
+}
+function renderGuide(){
+  const g = $("guide");
+  if(mode === "sandbox"){
+    $("guideCount").textContent = "Sandbox";
+    g.innerHTML = `<div class="eyebrow">Sandbox</div><h2>Ask the data your own questions</h2><div class="prose"><p>No grading here. Pick an analysis below to see how an analyst would answer it, then change it and ask your own questions.</p><p>Changes you make to the data stay until you press <b>Reset database</b>.</p></div><div class="ideas">${IDEAS.map((x,i)=>`<button class="btn" data-idea="${i}">${esc(x[0])}</button>`).join("")}</div>`;
+    return;
+  }
+  const l = L[cur];
+  $("guideCount").textContent = `Lesson ${cur+1} of ${L.length}`;
+  g.innerHTML = `<div class="eyebrow">${esc(l.unit)}</div><h2>${esc(l.title)}</h2><div class="prose">${l.body}</div>
+    <div class="task"><div class="label">Business question</div><div class="what">${esc(l.task)}</div>
+      <div class="row"><button class="btn" id="hintBtn">Hint</button><button class="btn" id="ansBtn">Show answer</button></div>
+      <div id="reveal"></div><div id="feedback"></div></div>
+    <div class="pager">${cur>0?`<button class="btn" id="prevBtn">← Previous</button>`:"<span></span>"}${cur<L.length-1?`<button class="btn" id="skipBtn">Next →</button>`:""}</div>`;
+  g.querySelectorAll("pre.ex").forEach(pre => {
+    const code = pre.textContent; const wrap = document.createElement("div"); wrap.className = "try";
+    const b = document.createElement("button"); b.textContent = "Try it"; wrap.appendChild(b); pre.appendChild(wrap);
+    b.onclick = () => { setEditor(code); setFeedback(null); execute(); };
+  });
+  $("hintBtn").onclick = () => { $("reveal").innerHTML = `<div class="reveal"><b>Hint:</b> ${esc(l.hint)}</div>`; };
+  $("ansBtn").onclick = () => { $("reveal").innerHTML = `<div class="reveal"><b>One correct answer</b> (others can work too):<pre>${esc(l.sol)}</pre><button class="btn" id="loadAns" style="margin-top:8px">Put it in the editor</button></div>`; $("loadAns").onclick = () => setEditor(l.sol); };
+  if($("prevBtn")) $("prevBtn").onclick = () => go(cur-1);
+  if($("skipBtn")) $("skipBtn").onclick = () => go(cur+1);
+  $("guideScroll").scrollTop = 0;
+}
+function setEditor(v){ ed.value = v; ed.scrollTop = 0; ed.scrollLeft = 0; syncEditor(); saveDraft(); }
+function saveDraft(){ if(mode === "lessons"){ drafts[cur] = ed.value; store.set("drafts", drafts); } else store.set("sandbox", ed.value); }
+function insertAtCursor(text){
+  const s = ed.selectionStart, e = ed.selectionEnd, v = ed.value;
+  const pre = s > 0 && !/[\s(,.]$/.test(v.slice(0,s)) ? " " : "";
+  ed.value = v.slice(0,s) + pre + text + v.slice(e);
+  const p = s + pre.length + text.length; ed.setSelectionRange(p,p); ed.focus(); syncEditor(); saveDraft();
+}
+function fileName(){ return mode === "sandbox" ? "scratch.sql" : `lesson_${String(cur+1).padStart(2,"0")}.sql`; }
+function go(i){
+  if(i < 0 || i >= L.length) return;
+  cur = i; store.set("cur", cur);
+  if(mode !== "lessons"){ setMode("lessons"); return; }
+  renderLessons(); renderGuide(); $("fileTab").textContent = fileName();
+  setEditor(drafts[cur] != null ? drafts[cur] : "-- Write your query below, then press Run\n");
+  showResult(null, "Run a query and its results show up here as a grid, one row per record."); setRTab("results"); setStatus("Ready");
+}
+function setMode(m){
+  mode = m;
+  $("modeLessons").setAttribute("aria-pressed", m==="lessons"); $("modeSandbox").setAttribute("aria-pressed", m==="sandbox");
+  $("checkBtn").hidden = m !== "lessons"; $("resetDbBtn").hidden = m !== "sandbox";
+  $("fileTab").textContent = fileName();
+  if(m === "sandbox"){
+    if(!sandboxDb) sandboxDb = newDb();
+    renderLessons(); renderGuide();
+    setEditor(store.get("sandbox", "-- Anything goes. Pick an analysis from the guide, or write your own.\nSELECT * FROM claims WHERE status = 'Open';\n"));
+    showResult(null, "Run a query and its results show up here."); setRTab("results"); setStatus("Ready");
+  } else go(cur);
+}
+function setLeftTab(t){
+  $("ltLessons").setAttribute("aria-selected", t==="lessons"); $("ltDb").setAttribute("aria-selected", t==="db");
+  $("lessonPane").hidden = t!=="lessons"; $("dbPane").hidden = t!=="db"; store.set("lefttab", t);
+}
+
+/* ---------- wiring ---------- */
+function applyFont(){ document.documentElement.style.fontSize = fontPx + "px"; }
+function wire(){
+  ed.addEventListener("input", () => { syncEditor(); saveDraft(); });
+  ed.addEventListener("scroll", syncScroll);
+  ed.addEventListener("keydown", e => {
+    if(((e.ctrlKey || e.metaKey) && e.key === "Enter") || e.key === "F5"){ e.preventDefault(); setFeedback(null); execute(); }
+    else if(e.key === "Tab" && !e.shiftKey){ e.preventDefault(); const s = ed.selectionStart; ed.value = ed.value.slice(0,s) + "  " + ed.value.slice(ed.selectionEnd); ed.setSelectionRange(s+2,s+2); syncEditor(); saveDraft(); }
+  });
+  $("runBtn").onclick = () => { setFeedback(null); execute(); };
+  $("checkBtn").onclick = check;
+  $("clearBtn").onclick = () => { setEditor(""); ed.focus(); };
+  $("resetDbBtn").onclick = () => { if(sandboxDb) sandboxDb.close(); sandboxDb = newDb(); setStatus("Database reset"); logMsg("ok","(reset)","<b>Database reset.</b> All tables are back to their original rows."); setRTab("messages"); };
+  $("lessonList").onclick = e => { const b = e.target.closest("button[data-i]"); if(b) go(+b.dataset.i); };
+  $("modeLessons").onclick = () => setMode("lessons");
+  $("modeSandbox").onclick = () => setMode("sandbox");
+  $("ltLessons").onclick = () => setLeftTab("lessons");
+  $("ltDb").onclick = () => setLeftTab("db");
+  $("rtResults").onclick = () => setRTab("results");
+  $("rtMessages").onclick = () => setRTab("messages");
+  $("tree").onclick = e => {
+    const ins = e.target.closest("[data-ins]"); if(ins){ e.preventDefault(); return insertAtCursor(ins.dataset.ins); }
+    const pk = e.target.closest("[data-peek]");
+    if(pk){ e.preventDefault();
+      const db = mode==="sandbox" ? sandboxDb : newDb(); const q = `SELECT * FROM ${pk.dataset.peek} LIMIT 100;`;
+      try{ const r = runAll(db, q).result; showResult(r); setRTab("results"); setStatus(`Preview of ${pk.dataset.peek} · ${r.values.length} rows`); logMsg("ok", q, `<b>Preview.</b> Showing ${pk.dataset.peek}.`); }
+      catch(err){ showResult(null, "That table no longer exists. Reset the database."); }
+      if(mode!=="sandbox") db.close();
+    }
+  };
+  $("guide").addEventListener("click", e => { const b = e.target.closest("[data-idea]"); if(b){ setEditor(IDEAS[+b.dataset.idea][1]); execute(); } });
+  $("fontDown").onclick = () => { fontPx = Math.max(13, fontPx-1); applyFont(); store.set("font", fontPx); syncEditor(); };
+  $("fontUp").onclick = () => { fontPx = Math.min(24, fontPx+1); applyFont(); store.set("font", fontPx); syncEditor(); };
+  const fsOk = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if(!fsOk) $("fsBtn").hidden = true;
+  else {
+    $("fsBtn").onclick = () => {
+      const el = document.documentElement;
+      if(document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else { try{ const r = (el.requestFullscreen || el.webkitRequestFullscreen).call(el); if(r && r.catch) r.catch(()=>{}); }catch(e){} }
+    };
+    const upd = () => { $("fsBtn").textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? "Exit full screen" : "Full screen"; };
+    document.addEventListener("fullscreenchange", upd); document.addEventListener("webkitfullscreenchange", upd);
+  }
+}
+function start(){
+  $("loading").hidden = true; $("ide").hidden = false;
+  applyFont(); renderTree(); renderMeter(); wire(); setLeftTab(store.get("lefttab","lessons")); go(cur);
+}
+if(typeof initSqlJs !== "function") $("loading").textContent = "The SQL engine didn't load. Check your internet connection and reload the page.";
+else initSqlJs().then(S => { SQL = S; start(); }).catch(err => { $("loading").textContent = "The SQL engine couldn't start: " + err.message; });
+})();
+</script>
+
+</body>
+</html>
