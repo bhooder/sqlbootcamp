@@ -5,35 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SQL Claims Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: a query-tool workspace. Explorer (left) | editor over results grid (center) | lesson guide (right). Stacks on narrow screens. */
+/* Look: warm "paper and ink" with a deep red accent, a serif for reading, and a dark terminal-style editor. */
 :root{
-  --bg:#e9eef1; --surface:#ffffff; --sunk:#f6f8f9; --chrome:#dfe6ea; --ink:#15212a; --muted:#5a6873; --line:#d5dde2;
-  --accent:#0d6b58; --accent-ink:#ffffff; --accent-soft:#dff0ea;
-  --amber:#a86300; --amber-soft:#fbefd9; --bad:#b0281f; --bad-soft:#fbe5e2;
-  --kw:#1a5ca6; --str:#9a4700; --num:#7b3b9e; --cmt:#83909a; --gutter:#9aa6ae;
-  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --bg:#f3ead7; --surface:#fffdf5; --sunk:#f8f1e1; --chrome:#e9dfc6; --ink:#1c1a17; --muted:#6b5f4e; --line:#dccfae;
+  --accent:#8a2b2b; --accent-ink:#fffdf5; --accent-soft:#f2dfd6;
+  --ok:#3e6b2f; --ok-ink:#fffdf5; --ok-soft:#e3ebcf;
+  --amber:#85560c; --amber-soft:#f4e6c4; --bad:#a3221a; --bad-soft:#f6ddd6;
+  --kw:#8a2b2b; --str:#7a5a12; --num:#6b3a7a; --cmt:#8a7f6c; --gutter:#a39678;
+  /* the editor is always a dark "terminal" */
+  --term:#0f0d0a; --term-gutter:#0a0907; --term-line:#2a251d; --term-text:#d9c89a; --term-num:#6b6250; --term-focus:#c9a35a;
+  --sql-kw:#e8a652; --sql-fn:#8fc1dc; --sql-str:#a6cf8c; --sql-num:#df9bbd; --sql-com:#9a9080;
+  --display:"Playfair Display", Georgia, serif;
+  --body:"Cormorant Garamond", Georgia, serif;
   --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:light; /* always the light "paper" look, even when the computer is in dark mode */
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --bg:#0b1013; --surface:#141b20; --sunk:#10161a; --chrome:#1a2329; --ink:#e3e9ed; --muted:#93a1ab; --line:#25313a;
-  --accent:#44c4a0; --accent-ink:#06231b; --accent-soft:#12302a;
-  --amber:#e9a640; --amber-soft:#2d2312; --bad:#ff8d82; --bad-soft:#3a1a17;
-  --kw:#82b5ff; --str:#f0b36c; --num:#d4a6f5; --cmt:#6b7a85; --gutter:#4f5d67; color-scheme:dark }}
-:root[data-theme="dark"]{
-  --bg:#0b1013; --surface:#141b20; --sunk:#10161a; --chrome:#1a2329; --ink:#e3e9ed; --muted:#93a1ab; --line:#25313a;
-  --accent:#44c4a0; --accent-ink:#06231b; --accent-soft:#12302a;
-  --amber:#e9a640; --amber-soft:#2d2312; --bad:#ff8d82; --bad-soft:#3a1a17;
-  --kw:#82b5ff; --str:#f0b36c; --num:#d4a6f5; --cmt:#6b7a85; --gutter:#4f5d67; color-scheme:dark }
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5;
+/* Cormorant has small lowercase letters; font-size-adjust scales it up to read like a normal 16px text. Code fonts opt out below. */
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-weight:500;font-size-adjust:.5;font-size:1rem;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 16px}
 button{font:inherit;cursor:pointer;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,.ex,.editor-wrap,.grid th,.grid td.n,.grid .rn,.ref dt,.ref .line,.clause,.lessons .num,.msg .ts,.msg .q,.msg .raw,.reveal pre,.ops td:first-child,#fileTab{font-size-adjust:none}
+.ex button{font-size-adjust:.5}
 code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:0 .3em}
 
 /* toolbar */
@@ -46,7 +45,7 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px s
 @media (max-width:640px){.brand span{display:none}}
 .meter{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .meter .bar{width:90px;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
-.meter .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.meter .bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .4s}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--surface)}
 .seg button{border:0;background:transparent;color:var(--muted);padding:5px 12px;font-weight:600;font-size:.88rem}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
@@ -71,9 +70,10 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px s
   body{display:flex;flex-direction:column}
   .ide{flex:1;min-height:0;display:grid;grid-template-columns:minmax(270px,300px) minmax(0,1fr) minmax(300px,28%)}
   .leftcol{min-height:0}
-  .explorer{flex:0 1 auto}
-  .explorer .pscroll{flex:0 1 auto}
-  .ref{flex:1 1 140px}
+  /* explorer and quick reference share the column (about 55/45), each scrolling on its own */
+  .explorer{flex:11 1 0;min-height:200px}
+  .explorer .pscroll{flex:1 1 auto}
+  .ref{flex:9 1 0;min-height:180px}
   .guide{order:0}
   .center{display:grid;grid-template-rows:minmax(170px,42%) minmax(0,1fr)}
 }
@@ -90,41 +90,55 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px s
 .lessons button:hover{background:var(--sunk)}
 .lessons button[aria-current="true"]{background:var(--accent-soft);font-weight:600}
 .lessons .num{font-family:var(--mono);font-size:.68rem;color:var(--muted);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface)}
-.lessons .done .num{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.lessons .done .num{background:var(--ok);border-color:var(--ok);color:var(--ok-ink)}
 
 /* explorer: database tree */
-.tree{padding:8px 6px;font-size:.88rem}
-.node{display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px;min-width:0}
-.node .ic{flex:none;color:var(--muted);display:flex}
-.node.db{font-weight:700}
-.tree details{margin-left:8px}
-.tree summary{white-space:nowrap;list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:3px 6px;border-radius:5px}
-.tree summary::-webkit-details-marker{display:none}
-.tree summary:hover{background:var(--sunk)}
-.caret{flex:none;width:10px;color:var(--muted);transition:transform .15s;font-size:.7rem}
-.tree details[open]>summary .caret{transform:rotate(90deg)}
-.tname{font-family:var(--mono);font-size:.84rem;font-weight:600}
-.tcount{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.tact{margin-left:auto;display:flex;gap:4px}
-.tact button{border:1px solid var(--line);background:var(--surface);border-radius:4px;font-size:.7rem;padding:0 6px;color:var(--muted)}
-.tact button:hover{color:var(--accent);border-color:var(--accent)}
-.cols{list-style:none;margin:2px 0 6px 22px;padding:0 0 0 8px;border-left:1px solid var(--line)}
-.cols li button{width:100%;border:0;background:transparent;text-align:left;display:flex;justify-content:space-between;gap:10px;padding:2px 6px;border-radius:4px;align-items:baseline}
-.cols li button:hover{background:var(--accent-soft)}
-.cname{font-family:var(--mono);font-size:.8rem}
-.cname{white-space:nowrap}
-.cmeta{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.3;min-width:0}
-.ctype{font-family:var(--mono);font-size:.64rem}
-.ref .refbody{padding:10px 14px 14px;font-size:.84rem}
-.ref dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:baseline}
-.ref dt{font-family:var(--mono);font-size:.74rem;font-weight:600;color:var(--kw);white-space:nowrap}
-.ref dd{margin:0;color:var(--muted)}
-.ref h5{margin:12px 0 5px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tree{padding:10px 10px 12px}
+/* explorer: database diagram. Tables are boxes with a dark title bar; red curves show which columns link the tables. */
+.erd-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.erd-head .lab{font:700 .78rem/1 var(--display);letter-spacing:.1em}
+.erd-head .sub{font-size:.82rem;color:var(--muted)}
+.erd-grow{margin-left:auto;width:28px;height:26px;display:inline-grid;place-items:center;border:1px solid var(--line);background:var(--surface);border-radius:6px;color:var(--muted);padding:0}
+.erd-grow:hover{color:var(--accent);border-color:var(--accent)}
+.erd{background:var(--surface);border:1px solid var(--ink);border-radius:8px;padding:6px 4px}
+.erd svg{display:block;width:100%;height:auto;margin:0 auto;font-family:var(--mono);font-size-adjust:none}
+.erd .tb-frame{fill:var(--bg);stroke:var(--ink)}
+.erd .tb-head{fill:var(--ink)}
+.erd .tb-name{fill:var(--bg);font-size:12px;font-weight:600}
+.erd .tb-view{fill:var(--bg);font-size:10px;text-decoration:underline;opacity:.85}
+.erd [data-peek]:hover .tb-view{opacity:1}
+.erd [data-ins],.erd [data-peek]{cursor:pointer;outline:none}
+.erd .r-bg{fill:transparent}
+.erd .row:hover .r-bg,.erd .row:focus-visible .r-bg{fill:var(--accent-soft)}
+.erd .hd:focus-visible .tb-head,.erd .hd:hover .tb-head{fill:var(--accent)}
+.erd .c-name{fill:var(--ink);font-size:11px}
+.erd .c-type{fill:var(--ink);fill-opacity:.5;font-size:9px}
+.erd .rel path{stroke:var(--accent);stroke-opacity:.8;fill:none;stroke-width:1.4;stroke-linecap:round}
+.erd .rel .hit{stroke:transparent;stroke-width:12}
+.erd .rel:hover path{stroke-opacity:1;stroke-width:2}
+.erd .rel:hover .hit{stroke:transparent;stroke-width:12}
+.erd .rel circle{fill:var(--accent)}
+.erd .rel text{fill:var(--accent);font-size:10px;font-weight:700}
+.key-pk{color:#b8913f}.key-fk{color:#8d949a}
+.erd-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.82rem;color:var(--muted);margin:8px 2px 0}
+.erd-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.erd-legend .rel-k{stroke:var(--accent);stroke-width:1.4;fill:none;stroke-linecap:round}
+.erd-notes{margin:10px 2px 0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:.82rem;align-items:baseline}
+.erd-notes .h{grid-column:1/-1;font:700 .7rem/1.6 var(--display);letter-spacing:.1em;color:var(--muted);margin-bottom:2px}
+.erd-notes dt{font-family:var(--mono);font-size-adjust:none;font-size:.72rem}
+.erd-notes dd{margin:0;color:var(--muted)}
+/* enlarged: the diagram fills the window, tables side by side */
+.erd-wrap.large{position:fixed;inset:16px;z-index:30;background:var(--bg);border:1px solid var(--ink);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:16px 20px;display:flex;flex-direction:column;overflow:auto}
+.erd-wrap.large .erd{flex:1 1 auto;min-height:260px;display:flex;align-items:center;justify-content:center;padding:12px}
+.erd-wrap.large .erd svg{width:100%;height:100%;max-height:100%}
+.erd-wrap.large .erd-notes{grid-template-columns:repeat(auto-fill,minmax(110px,auto) minmax(150px,1fr))}
+.ref .refbody{padding:12px 16px 16px;font-size:1rem;line-height:1.4}
+.ref dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;align-items:baseline}
+.ref dt{font-family:var(--mono);font-size:.84rem;font-weight:600;color:var(--kw);white-space:nowrap}
+.ref dd{margin:0;color:var(--ink)}
+.ref h5{margin:16px 0 6px;font:700 .8rem/1.3 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .ref h5:first-child{margin-top:0}
-.ref .line{font-family:var(--mono);font-size:.74rem;background:var(--sunk);border:1px solid var(--line);border-radius:5px;padding:5px 8px;overflow-x:auto;white-space:nowrap}
-.badge{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:0 4px;border-radius:3px;margin-left:4px;vertical-align:1px}
-.badge.pk{background:var(--amber-soft);color:var(--amber)}
-.badge.fk{background:var(--accent-soft);color:var(--accent)}
+.ref .line{font-family:var(--mono);font-size:.84rem;line-height:1.5;background:var(--sunk);border:1px solid var(--line);border-radius:5px;padding:6px 10px;white-space:normal;overflow-wrap:anywhere}
 .tree .tip{font-size:.75rem;color:var(--muted);padding:10px 8px 2px;line-height:1.4}
 
 /* editor */
@@ -142,17 +156,18 @@ code{font-family:var(--mono);font-size:.86em;background:var(--sunk);border:1px s
 .clause.wrong{background:var(--bad-soft);color:var(--bad);border-color:transparent}
 .arrow{color:var(--gutter);font-size:.7rem}
 .clause-msg{font-size:.78rem;color:var(--bad);width:100%}
-.editor-wrap{position:relative;flex:1;min-height:220px;background:var(--surface)}
+.editor-wrap{position:relative;flex:1;min-height:220px;background:var(--term);
+  --kw:var(--sql-kw);--fn:var(--sql-fn);--str:var(--sql-str);--num:var(--sql-num);--cmt:var(--sql-com)}
 @media (min-width:1100px){.editor-wrap{min-height:0}}
-.gutter{position:absolute;left:0;top:0;bottom:0;width:46px;overflow:hidden;background:var(--sunk);border-right:1px solid var(--line);pointer-events:none}
-.gutter pre{margin:0;padding:12px 8px 12px 0;text-align:right;color:var(--gutter);will-change:transform}
+.gutter{position:absolute;left:0;top:0;bottom:0;width:46px;overflow:hidden;background:var(--term-gutter);border-right:1px solid var(--term-line);pointer-events:none}
+.gutter pre{margin:0;padding:12px 8px 12px 0;text-align:right;color:var(--term-num);will-change:transform}
 .editor-wrap pre.hl,.editor-wrap textarea,.gutter pre{font-family:var(--mono);font-size:.9rem;line-height:1.6;tab-size:2;letter-spacing:0}
 .editor-wrap pre.hl,.editor-wrap textarea{position:absolute;inset:0;margin:0;border:0;padding:12px 14px 12px 58px;white-space:pre;overflow-wrap:normal}
-.editor-wrap pre.hl{overflow:hidden;pointer-events:none;color:var(--ink)}
-.editor-wrap textarea{width:100%;height:100%;resize:none;overflow:auto;background:transparent;color:transparent;caret-color:var(--ink);outline:none}
-.editor-wrap textarea::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}
-.editor-wrap textarea:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
-.t-kw{color:var(--kw);font-weight:600}.t-str{color:var(--str)}.t-num{color:var(--num)}.t-cmt{color:var(--cmt);font-style:italic}.t-fn{color:var(--kw)}
+.editor-wrap pre.hl{overflow:hidden;pointer-events:none;color:var(--term-text)}
+.editor-wrap textarea{width:100%;height:100%;resize:none;overflow:auto;background:transparent;color:transparent;caret-color:var(--term-text);outline:none}
+.editor-wrap textarea::selection{background:color-mix(in srgb,var(--term-focus) 35%,transparent)}
+.editor-wrap textarea:focus-visible{box-shadow:inset 0 0 0 2px var(--term-focus)}
+.t-kw{color:var(--kw);font-weight:600}.t-str{color:var(--str)}.t-num{color:var(--num)}.t-cmt{color:var(--cmt);font-style:italic}.t-fn{color:var(--fn,var(--kw))}
 
 /* results */
 .rbody{overflow:auto;min-height:0;flex:1}
@@ -173,11 +188,11 @@ table.grid{border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabula
 .msg .q{font-family:var(--mono);font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msg .t{grid-column:2}
 .msg.err .t b{color:var(--bad)}
-.msg.ok .t b{color:var(--accent)}
+.msg.ok .t b{color:var(--ok)}
 .msg .raw{grid-column:2;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--bad);display:inline-block}
 .statusbar{display:flex;justify-content:space-between;gap:10px;padding:4px 12px;border-top:1px solid var(--line);background:var(--chrome);font-size:.76rem;color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
-.statusbar .conn::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.statusbar .conn::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
 .statusbar .bad{color:var(--bad);font-weight:600}
 
 /* guide */
@@ -204,7 +219,7 @@ table.grid{border-collapse:collapse;font-size:.86rem;font-variant-numeric:tabula
 .reveal{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:9px 12px;font-size:.9rem}
 .reveal pre{font-family:var(--mono);font-size:.78rem;margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 .feedback{border-radius:8px;padding:10px 12px;font-size:.92rem;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-.feedback.ok{background:var(--accent-soft)} .feedback.ok b{color:var(--accent)}
+.feedback.ok{background:var(--ok-soft)} .feedback.ok b{color:var(--ok)}
 .feedback.no{background:var(--amber-soft)} .feedback.no b{color:var(--amber)}
 .feedback.err{background:var(--bad-soft)} .feedback.err b{color:var(--bad)}
 .next{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:6px 14px;font-weight:700}
@@ -736,21 +751,68 @@ function renderLessons(){
   });
   $("lessonList").innerHTML = h;
 }
-function renderTree(){
-  const db = newDb(); const counts = {};
-  DBTREE.forEach(t => counts[t.name] = db.exec(`SELECT COUNT(*) FROM ${t.name}`)[0].values[0][0]); db.close();
-  const dbIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="3.5" rx="5.5" ry="2"/><path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2"/></svg>`;
-  const tblIcon = `<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M1.5 6h13M6 6v7.5"/></svg>`;
-  let h = `<div class="node db"><span class="ic">${dbIcon}</span>claims_db</div><details open><summary><span class="caret">▶</span><span>Tables</span><span class="tcount">(${DBTREE.length})</span></summary>`;
+/* ---------- database diagram ---------- */
+let ERD_COUNTS = {};
+const KEY_SYM = `<symbol id="erd-key" viewBox="0 0 12 12"><circle cx="4" cy="4" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 6l5 5M8.6 8.6l-1.4 1.4M10.2 10.2l-1.2 1.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>`;
+function erdSvg(wide){
+  const TW = 200, H = 26, RH = 20, PAD = 5, pos = {}, rows = {};
+  let W, maxY = 0;
+  if(wide){ let x = 20; DBTREE.forEach(t => { pos[t.name] = {x, y:16}; x += TW + 90; }); W = x - 90 + 20; }
+  else { let y = 8; DBTREE.forEach(t => { pos[t.name] = {x:35, y}; y += H + t.cols.length*RH + PAD + 30; }); W = 270; }
+  let out = "";
   DBTREE.forEach(t => {
-    h += `<details open><summary><span class="caret">▶</span><span class="ic" style="color:var(--muted);display:flex">${tblIcon}</span><span class="tname">${t.name}</span><span class="tcount">${counts[t.name]}</span><span class="tact"><button data-ins="${t.name}" title="Insert table name">+</button><button data-peek="${t.name}" title="Show the first rows">View</button></span></summary><ul class="cols">`;
-    t.cols.forEach(([c,ty,k,note]) => {
-      h += `<li><button data-ins="${c}"><span class="cname">${c}${k==="pk"?'<span class="badge pk">PK</span>':k==="fk"?'<span class="badge fk">FK</span>':""}</span><span class="cmeta"><span class="ctype">${ty}</span>${note?` · ${esc(note)}`:""}</span></button></li>`;
+    const {x, y} = pos[t.name], h = H + t.cols.length*RH + PAD, n = ERD_COUNTS[t.name];
+    maxY = Math.max(maxY, y + h);
+    out += `<rect class="tb-frame" x="${x}" y="${y}" width="${TW}" height="${h}" rx="5"/>`;
+    out += `<g class="hd" data-ins="${t.name}" tabindex="0" role="button" aria-label="Insert table name ${t.name}"><title>${t.name}: ${n} rows. Click to insert the table name.</title><path class="tb-head" d="M${x},${y+H}V${y+5}q0,-5 5,-5H${x+TW-5}q5,0 5,5V${y+H}Z"/><text class="tb-name" x="${x+10}" y="${y+17}">${t.name}</text></g>`;
+    out += `<g data-peek="${t.name}" tabindex="0" role="button" aria-label="Show the first rows of ${t.name}"><title>Show the first rows of ${t.name}</title><text class="tb-view" x="${x+TW-9}" y="${y+17}" text-anchor="end">View (${n})</text></g>`;
+    t.cols.forEach(([c, ty, k, note], j) => {
+      const ry = y + H + j*RH + 2;
+      rows[t.name+"."+c] = {x, xr:x+TW, y:ry + RH/2};
+      const kind = k==="pk" ? ", primary key" : k==="fk" ? ", foreign key" : "";
+      out += `<g class="row" data-ins="${c}" tabindex="0" role="button" aria-label="Insert column ${c}"><title>${c} (${ty}${kind})${note ? ": "+esc(note) : ""}. Click to insert.</title><rect class="r-bg" x="${x+1}" y="${ry}" width="${TW-2}" height="${RH}"/>${k ? `<use href="#erd-key" class="key-${k}" x="${x+9}" y="${ry+4.5}" width="11" height="11"/>` : ""}<text class="c-name" x="${x+26}" y="${ry+14}">${c}</text><text class="c-type" x="${x+TW-9}" y="${ry+14}" text-anchor="end">${ty}</text></g>`;
     });
-    h += `</ul></details>`;
   });
-  h += `</details><p class="tip"><b>PK</b> (primary key) uniquely identifies each row. <b>FK</b> (foreign key) points to a row in another table, which is how JOIN connects them. Click any name to insert it into the editor.</p>`;
-  $("tree").innerHTML = h;
+  // relationships come from the foreign-key notes, e.g. "→ policyholders.id"
+  let i = 0;
+  DBTREE.forEach(t => t.cols.forEach(([c, , k, note]) => {
+    const m = k==="fk" && /→\s*(\w+)\.(\w+)/.exec(note || ""); if(!m) return;
+    const P = rows[m[1]+"."+m[2]], C = rows[t.name+"."+c]; if(!P || !C) return;
+    let d, x1, x2, l1, l2, anchor;
+    if(wide){ x1 = P.xr; x2 = C.x; const mx = (x1+x2)/2; d = `M${x1},${P.y}C${mx},${P.y} ${mx},${C.y} ${x2},${C.y}`; l1 = x1+7; l2 = x2-7; anchor = ["start","end"]; }
+    else { const sd = i%2 ? 1 : -1; x1 = x2 = sd<0 ? P.x : P.xr; const bx = x1 + sd*30; d = `M${x1},${P.y}C${bx},${P.y} ${bx},${C.y} ${x2},${C.y}`; l1 = l2 = x1 + sd*6; anchor = sd<0 ? ["end","end"] : ["start","start"]; }
+    const tip = `One ${m[1]} row can link to many ${t.name} rows. Join them with ON ${t.name}.${c} = ${m[1]}.${m[2]}`;
+    out += `<g class="rel"><title>${tip}</title><path class="hit" d="${d}"/><path d="${d}"/><circle cx="${x1}" cy="${P.y}" r="2.6"/><circle cx="${x2}" cy="${C.y}" r="2.6"/><text x="${l1}" y="${P.y-5}" text-anchor="${anchor[0]}">1</text><text x="${l2}" y="${C.y-5}" text-anchor="${anchor[1]}">N</text></g>`;
+    i++;
+  }));
+  const Ht = maxY + (wide ? 16 : 8);
+  return `<svg viewBox="0 0 ${W} ${Ht}" width="${W}" height="${Ht}" preserveAspectRatio="xMidYMid meet" aria-hidden="false"><defs>${KEY_SYM}</defs>${out}</svg>`;
+}
+const GROW_ICON = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4M13.5 2.5L9 7M6.5 13.5h-4v-4M2.5 13.5L7 9"/></svg>`;
+const SHRINK_ICON = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>`;
+function renderTree(){
+  const db = newDb();
+  DBTREE.forEach(t => ERD_COUNTS[t.name] = db.exec(`SELECT COUNT(*) FROM ${t.name}`)[0].values[0][0]); db.close();
+  const notes = DBTREE.flatMap(t => t.cols.filter(c => c[3] && c[2] !== "fk").map(c => `<dt>${c[0]}</dt><dd>${esc(c[3])}</dd>`)).join("");
+  $("tree").innerHTML = `<div class="erd-wrap" id="erdWrap">
+    <div class="erd-head"><span class="lab">SCHEMA</span><span class="sub">claims_db · ${DBTREE.length} tables</span><button class="erd-grow" id="erdGrow" data-grow title="Enlarge the diagram" aria-label="Enlarge the diagram">${GROW_ICON}</button></div>
+    <div class="erd" id="erd" role="group" aria-label="Database diagram: tables, their columns, and how they link">${erdSvg(false)}</div>
+    <div class="erd-legend">
+      <span><svg width="12" height="12"><use href="#erd-key" class="key-pk" width="12" height="12"/></svg>primary key (unique ID)</span>
+      <span><svg width="12" height="12"><use href="#erd-key" class="key-fk" width="12" height="12"/></svg>foreign key (points to another table)</span>
+      <span><svg width="40" height="14"><path class="rel-k" d="M2,9H38"/><text x="2" y="7" font-size="9" font-weight="700" fill="var(--accent)" font-family="var(--mono)">1</text><text x="31" y="7" font-size="9" font-weight="700" fill="var(--accent)" font-family="var(--mono)">N</text></svg>one-to-many link</span>
+    </div>
+    <p class="tip">Click a table or column name to put it in the editor. <b>View</b> shows a table's first rows. Hover a red line to see the JOIN it stands for.</p>
+    <dl class="erd-notes"><div class="h">COLUMN NOTES</div>${notes}</dl>
+  </div>`;
+}
+function growErd(on){
+  const w = $("erdWrap"); if(!w) return;
+  w.classList.toggle("large", on);
+  $("erd").innerHTML = erdSvg(on);
+  const b = $("erdGrow"); b.innerHTML = on ? SHRINK_ICON : GROW_ICON;
+  b.title = on ? "Close the large diagram (Esc)" : "Enlarge the diagram"; b.setAttribute("aria-label", b.title);
+  if(on) b.focus();
 }
 function renderGuide(){
   const g = $("guide");
@@ -832,15 +894,21 @@ function wire(){
   $("rtResults").onclick = () => setRTab("results");
   $("rtMessages").onclick = () => setRTab("messages");
   $("tree").onclick = e => {
-    const ins = e.target.closest("[data-ins]"); if(ins){ e.preventDefault(); return insertAtCursor(ins.dataset.ins); }
+    if(e.target.closest("[data-grow]")) return growErd(!$("erdWrap").classList.contains("large"));
+    const big = $("erdWrap") && $("erdWrap").classList.contains("large");
+    const ins = e.target.closest("[data-ins]"); if(ins){ e.preventDefault(); if(big) growErd(false); return insertAtCursor(ins.dataset.ins); }
     const pk = e.target.closest("[data-peek]");
-    if(pk){ e.preventDefault();
+    if(pk){ e.preventDefault(); if(big) growErd(false);
       const db = mode==="sandbox" ? sandboxDb : newDb(); const q = `SELECT * FROM ${pk.dataset.peek} LIMIT 100;`;
       try{ const r = runAll(db, q).result; showResult(r); setRTab("results"); setStatus(`Preview of ${pk.dataset.peek} · ${r.values.length} rows`); logMsg("ok", q, `<b>Preview.</b> Showing ${pk.dataset.peek}.`); }
       catch(err){ showResult(null, "That table no longer exists. Reset the database."); }
       if(mode!=="sandbox") db.close();
     }
   };
+  $("tree").addEventListener("keydown", e => {
+    if((e.key === "Enter" || e.key === " ") && e.target.closest("[data-ins],[data-peek]")){ e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", {bubbles:true})); }
+  });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && $("erdWrap") && $("erdWrap").classList.contains("large")) growErd(false); });
   $("guide").addEventListener("click", e => { const b = e.target.closest("[data-idea]"); if(b){ setEditor(IDEAS[+b.dataset.idea][1]); execute(); } });
   $("fontDown").onclick = () => { fontPx = Math.max(13, fontPx-1); applyFont(); store.set("font", fontPx); syncEditor(); };
   $("fontUp").onclick = () => { fontPx = Math.min(24, fontPx+1); applyFont(); store.set("font", fontPx); syncEditor(); };
